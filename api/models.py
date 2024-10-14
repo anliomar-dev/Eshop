@@ -158,8 +158,8 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_items')
 
     def save(self, *args, **kwargs):
-        # Calculer total_price avant de sauvegarder
-        self.total_price = self.unit_price * Decimal(self.quantity)  # Utiliser Decimal pour la multiplication
+        # Calculate total price before save
+        self.total_price = self.unit_price * Decimal(self.quantity)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -195,7 +195,7 @@ class Promo(models.Model):
     is_active = models.BooleanField(default=True)
 
     def clean(self):
-        # S'assurer qu'un seul champ est rempli
+        # ensure only one field between category, variant and product is filled
         count = sum(bool(field) for field in [self.variant, self.category, self.product])
         if count != 1:
             raise ValidationError("Only one of 'variant', 'category', or 'product' must be set.")
@@ -217,4 +217,8 @@ class Coupon(models.Model):
     usage_limit = models.IntegerField()
     used_count = models.IntegerField()
     expiry_date = models.DateTimeField(null=True, blank=True)
-    active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+
+    def is_valid(self):
+        # Check if the coupon is still valid
+        return self.is_active and (self.expiry_date is None or timezone.now() < self.expiry_date)
