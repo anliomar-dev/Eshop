@@ -18,6 +18,12 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    def save(self, *args, **kwargs):
+        # Vérifie si l'email est déjà utilisé
+        if User.objects.filter(email=self.email).exclude(pk=self.pk).exists():
+            raise ValidationError("This email address already exists.")
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.email
 
