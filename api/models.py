@@ -1,4 +1,7 @@
 import datetime
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
@@ -41,14 +44,14 @@ class Category(models.Model):
 
 class Product(models.Model):
     product_name = models.CharField(max_length=100, blank=False, null=False, unique=True)
-    brand = models.ForeignKey('api.Brand', blank=True, null=True, on_delete=models.SET_NULL)
+    brand = models.ForeignKey('api.Brand', blank=True, null=True, on_delete=models.SET_NULL, related_name="products")
 
     def __str__(self):
         return self.product_name
 
 
 class Review(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     rating = models.IntegerField()
     comment = models.TextField()
@@ -111,31 +114,101 @@ class Image(models.Model):  # Héritage de models.Model
         return f"{self.variant} - {self.color}"
 
 
-"""
-class Order:
-    pass
+class Order(models.Model):
+    shipping_address = models.OneToOneField('api.ShippingAdress', on_delete=models.CASCADE, related_name='order')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    time_stamp = models.DateTimeField(default=timezone.now)
+
+    def calculate_total(self):
+        # Calculer le total des articles de commande liés à cette commande
+        total = sum(item.total_price for item in self.order_items.all())
+        self.total_amount = total
+
+    def __str__(self):
+        return f"Order {self.id} by {self.user.username} - Total: {self.total_amount} €"
 
 
-class OrderItem:
-    pass
+class Payment(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    time_stamp = models.DateTimeField(default=timezone.now)
+    payment_method = models.CharField(max_length=50, blank=False, null=False)
+    currency = models.CharField(max_length=10, blank=False, null=False)
+    transaction_id = models.CharField(max_length=250, blank=False, null=False)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def save(self, *args, **kwargs):
+        # Validation du montant du paiement
+        if self.amount != self.order.total_amount:
+            raise ValidationError("Le montant du paiement doit correspondre au montant total de la commande.")
+        super().save(*args, **kwargs)
 
 
-class Cart:
-    pass
+class OrderItem(models.Model):
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='order_items')
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.IntegerField()
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_items')
+
+    def save(self, *args, **kwargs):
+        # Calculer total_price avant de sauvegarder
+        self.total_price = self.unit_price * Decimal(self.quantity)  # Utiliser Decimal pour la multiplication
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.variant} at {self.unit_price} € each, total: {self.total_price} €"
 
 
-class ShippingAdress:
-    pass
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')
 
 
-class Payment:
-    pass
+class ShippingAdress(models.Model):
+    receiver_first_name = models.CharField(max_length=100, blank=False, null=False)
+    receiver_last_name = models.CharField(max_length=100, blank=False, null=False)
+    country = models.CharField(max_length=100, blank=False, null=False)
+    city = models.CharField(max_length=100, blank=False, null=False)
+    address = models.CharField(max_length=100, blank=False, null=False)
+    phone_number = models.CharField(max_length=20, blank=False, null=False)
+    email = models.EmailField()
 
 
-class Coupon:
-    pass
+class Promo(models.Model):
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, null=True, blank=True)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, blank=True)
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, null=True, blank=True)
+
+    discount_type = models.CharField(max_length=20, choices=[
+        ('percentage', 'percentage'),
+        ('fixed', 'Fixed Amount'),
+    ])
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+
+    def clean(self):
+        # S'assurer qu'un seul champ est rempli
+        count = sum(bool(field) for field in [self.variant, self.category, self.product])
+        if count != 1:
+            raise ValidationError("Only one of 'variant', 'category', or 'product' must be set.")
+
+    def __str__(self):
+        if self.variant:
+            return f"Promo for {self.variant} - {self.discount_value} {self.discount_type}"
+        elif self.category:
+            return f"Promo for {self.category} - {self.discount_value} {self.discount_type}"
+        elif self.product:
+            return f"Promo for {self.product} - {self.discount_value} {self.discount_type}"
 
 
-class Promo:
-    pass
-"""
+class Coupon(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    discount_type = models.CharField(max_length=10, choices=[('percentage', 'Pourcentage'), ('fixed', 'Fixe')])
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    usage_limit = models.IntegerField()
+    used_count = models.IntegerField()
+    expiry_date = models.DateTimeField(null=True, blank=True)
+    active = models.BooleanField(default=True)
