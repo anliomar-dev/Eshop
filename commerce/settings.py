@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-_id4)csvwkvz^)9k6mt8o$k3*uhyjm70ys4gl33o@m629@l-(c
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+SITE_ID = 1
 
 # Application definition
 
@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'Eshop',
-    'api'
+    'api',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
