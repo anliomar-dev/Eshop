@@ -14,6 +14,7 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=100, null=True, blank=True)
     addresse = models.CharField(max_length=100, null=True, blank=True)
+    watchlist = models.ManyToManyField('api.Variant', blank=True, related_name='interested_users')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
