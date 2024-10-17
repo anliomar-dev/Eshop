@@ -12,17 +12,19 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)  # Champ uniquement pour l'entrée
+    # use only if the http method is post
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password']  # Inclut le mot de passe
+        fields = ['username', 'email', 'password']
 
     def create(self, validated_data):
         user = User(
             username=validated_data['username'],
             email=validated_data['email'],
         )
-        user.set_password(validated_data['password'])  # Hachage du mot de passe
+        user.set_password(validated_data['password'])  # hesh the password
         user.save()
         return user
+

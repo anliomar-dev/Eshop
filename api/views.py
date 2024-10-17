@@ -9,5 +9,5 @@ class UserListCreateAPIView(ListCreateAPIView):
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
-            return UserCreateSerializer  # Pour la création
+            return UserCreateSerializer
         return UserSerializer
