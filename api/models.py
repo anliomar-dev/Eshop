@@ -9,15 +9,19 @@ from django.utils.text import slugify
 
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=14, unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=100, null=True, blank=True)
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=14, unique=True, null=True, blank=True)
     addresse = models.CharField(max_length=100, null=True, blank=True)
     watchlist = models.ManyToManyField('api.Variant', blank=True, related_name='interested_users')
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['username']
+
+    class Meta:
+        ordering = ['email']
 
     def save(self, *args, **kwargs):
         # Vérifie si l'email est déjà utilisé
