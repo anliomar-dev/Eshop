@@ -2,6 +2,8 @@ from django.db import models
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
+from api.models import Brand
+
 User = get_user_model()
 
 
@@ -24,8 +26,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
         )
-        user.set_password(validated_data['password'])  # hesh the password
+        user.set_password(validated_data['password'])  # hash the password
         user.save()
         return user
 
 
+class BrandSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Brand
+        fields = '__all__'
