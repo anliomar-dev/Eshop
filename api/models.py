@@ -77,7 +77,7 @@ class Review(models.Model):
 
 class Brand(models.Model):
     name = models.CharField(max_length=50, blank=False, null=False)
-    logo = models.ImageField(upload_to='logos/')
+    logo = models.ImageField(upload_to='brands-logos/')
     slug = models.SlugField(max_length=50, unique=True, blank=True, db_index=True)
 
     def save(self, *args, **kwargs):
@@ -117,7 +117,7 @@ class Color(models.Model):  # Héritage de models.Model
 
 
 class Image(models.Model):  # Héritage de models.Model
-    url = models.ImageField(upload_to='images/')
+    url = models.ImageField(upload_to='variants-images/')
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='images')
     color = models.ForeignKey(Color, on_delete=models.SET_NULL, null=True, blank=True)
 
