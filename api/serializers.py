@@ -28,3 +28,4 @@ class UserCreateSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
